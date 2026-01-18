@@ -7,7 +7,7 @@ from openai import OpenAI
 # -----------------------------
 # Configuration
 # -----------------------------
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1")
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 REASONING_EFFORT = os.getenv("OPENAI_REASONING_EFFORT", "low")
 
 # -----------------------------
@@ -152,28 +152,41 @@ user_input = st.chat_input(st.session_state.tool_state.get("next_user_prompt", "
 
 def call_ai(user_text: str) -> ToolResponse:
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+    # Use previous_response_id for continuity if available
     if st.session_state.prev_response_id:
-        resp = client.responses.parse(
+        resp = client.responses.create(
             model=DEFAULT_MODEL,
             previous_response_id=st.session_state.prev_response_id,
             instructions=SYSTEM_INSTRUCTIONS,
             reasoning={"effort": REASONING_EFFORT},
             input=[{"role": "user", "content": user_text}],
-            text_format=ToolResponse,
         )
     else:
-        resp = client.responses.parse(
+        resp = client.responses.create(
             model=DEFAULT_MODEL,
             reasoning={"effort": REASONING_EFFORT},
             input=[
                 {"role": "system", "content": SYSTEM_INSTRUCTIONS},
                 {"role": "user", "content": user_text},
             ],
-            text_format=ToolResponse,
         )
 
+    # Persist response id (so the thread continues)
     st.session_state.prev_response_id = resp.id
-    return resp.output_parsed
+
+    # Manual text extraction (robust)
+    assistant_text = resp.output_text or ""
+
+    # For v0 testing, keep state as-is (no schema-based routing yet)
+    current_state = ToolState(**st.session_state.tool_state)
+
+    return ToolResponse(
+        assistant_message=assistant_text,
+        state=current_state,
+        blueprint_md=None,
+    )
+
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})

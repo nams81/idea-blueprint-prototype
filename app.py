@@ -159,13 +159,11 @@ def call_ai(user_text: str) -> ToolResponse:
             model=DEFAULT_MODEL,
             previous_response_id=st.session_state.prev_response_id,
             instructions=SYSTEM_INSTRUCTIONS,
-            reasoning={"effort": REASONING_EFFORT},
             input=[{"role": "user", "content": user_text}],
         )
     else:
         resp = client.responses.create(
             model=DEFAULT_MODEL,
-            reasoning={"effort": REASONING_EFFORT},
             input=[
                 {"role": "system", "content": SYSTEM_INSTRUCTIONS},
                 {"role": "user", "content": user_text},

@@ -153,6 +153,8 @@ st.info(
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "session_id" not in st.session_state:
+    st.session_state.session_id = os.urandom(4).hex()
 if "prev_response_id" not in st.session_state:
     st.session_state.prev_response_id = None
 if "tool_state" not in st.session_state:
@@ -215,6 +217,7 @@ def call_ai(user_text: str) -> ToolResponse:
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
+    log_to_gsheet("user", user_input)
     with st.chat_message("user"):
         st.markdown(user_input)
 
@@ -234,6 +237,7 @@ if user_input:
         st.session_state.blueprint_md = bp
 
     st.session_state.messages.append({"role": "assistant", "content": parsed.assistant_message})
+    log_to_gsheet("assistant", parsed.assistant_message)
     with st.chat_message("assistant"):
         st.markdown(parsed.assistant_message)
 

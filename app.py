@@ -1,5 +1,7 @@
 import os
 import streamlit as st
+import urllib.request
+import json
 from typing import List, Optional, Literal, Dict, Any
 from pydantic import BaseModel, Field
 from openai import OpenAI
@@ -111,6 +113,31 @@ def run_contradiction_scan(blueprint_md: str) -> List[str]:
         text_format=Critique,
     )
     return resp.output_parsed.issues
+    
+def log_to_gsheet(role: str, message: str):
+    url = os.environ.get("GSHEET_WEBHOOK_URL")
+    if not url:
+        return  # logging is optional
+
+    payload = {
+        "timestamp_utc": __import__("datetime").datetime.utcnow().isoformat(),
+        "session_id": st.session_state.get("session_id", ""),
+        "role": role,
+        "message": message,
+    }
+
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=3).read()
+    except Exception:
+        # Never break the app because logging failed
+        pass
 
 # -----------------------------
 # Streamlit UI
